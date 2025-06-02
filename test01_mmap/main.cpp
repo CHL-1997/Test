@@ -12,10 +12,44 @@
 //#define BUFF_LEN (128*1024)
 //#define BUFF_LEN (256*1024)
 //#define BUFF_LEN (512*1024)
-#define BUFF_LEN (1024*1024)
-#define MMAP_BUFF_LEN (200*1024*1024)
+#define BUFF_LEN (1024*1024) //实测这个大小速度最快
+//#define BUFF_LEN (3*1024*1024) //实测这个大小速度最快
+
+#define MMAP_BUFF_LEN (2*1024*1024)
 
 #define BILLION 1000000000
+
+//计算耗时函数
+static void timeStart(struct timespec *startTime){
+    if(NULL == startTime){
+		printf("input param NULL\n");
+		return;
+	}
+    clock_gettime(CLOCK_MONOTONIC, startTime);
+    return;
+}
+static void timeEnd(struct timespec *startTime, struct timespec *endTime){
+    if(NULL == startTime || NULL == endTime){
+		printf("input param NULL\n");
+		return;
+	}
+	time_t interval_s=0;
+	long interval_ns=0;
+    clock_gettime(CLOCK_MONOTONIC, endTime);
+	interval_s = endTime->tv_sec - startTime->tv_sec;
+	if(interval_s > 0){
+		interval_s -= 1;
+		interval_ns = endTime->tv_nsec - startTime->tv_nsec + BILLION;
+	}else{
+		interval_ns = endTime->tv_nsec - startTime->tv_nsec;
+	}
+	printf("fread cost [%ld]s, [%ld.%ld]ms\n", interval_s, interval_ns/1000000, interval_ns%1000000);
+    return;
+}
+
+static void timeEnd(){
+    return;
+}
 
 static int read_function(const char *file_path, char *buff, int buffLen){
 	if(NULL==file_path || NULL==buff || buffLen<=0){
@@ -163,52 +197,28 @@ int main(int argc, char** argv){
 
 	//使用read函数拷贝文件的耗时时间
 	printf("==============read==============\n");
-	clock_gettime(CLOCK_MONOTONIC, &startTime);
+	timeStart(&startTime);
 	read_function(file_path, buff, BUFF_LEN);
-	clock_gettime(CLOCK_MONOTONIC, &endTime);
-	interval_s = endTime.tv_sec - startTime.tv_sec;
-	if(interval_s > 0){
-		interval_s -= 1;
-		interval_ns = endTime.tv_nsec - startTime.tv_nsec + BILLION;
-	}else{
-		interval_ns = endTime.tv_nsec - startTime.tv_nsec;
-	}
-	printf("read cost [%ld]s, [%ld.%ld]ms\n", interval_s, interval_ns/1000000, interval_ns%1000000);
+	timeEnd(&startTime, &endTime);
 	printf("================================\n");
 
 	//使用fread函数拷贝文件的耗时时间
 	#if 1
-	printf("==============fread=============\n");
 	memset(buff, 0, sizeof(buff));
-	clock_gettime(CLOCK_MONOTONIC, &startTime);
+	printf("==============fread=============\n");
+	timeStart(&startTime);
 	fread_function(file_path, buff, BUFF_LEN);
-	clock_gettime(CLOCK_MONOTONIC, &endTime);
-	interval_s = endTime.tv_sec - startTime.tv_sec;
-	if(interval_s > 0){
-		interval_s -= 1;
-		interval_ns = endTime.tv_nsec - startTime.tv_nsec + BILLION;
-	}else{
-		interval_ns = endTime.tv_nsec - startTime.tv_nsec;
-	}
-	printf("fread cost [%ld]s, [%ld.%ld]ms\n", interval_s, interval_ns/1000000, interval_ns%1000000);
+	timeEnd(&startTime, &endTime);
 	printf("================================\n");
 	#endif
 
 	//使用mmap函数拷贝文件的耗时时间
 	#if 1
-	printf("==============mmap==============\n");
 	memset(buff, 0, sizeof(buff));
-	clock_gettime(CLOCK_MONOTONIC, &startTime);
+	printf("==============mmap==============\n");
+	timeStart(&startTime);
 	mmap_function(file_path, buff, BUFF_LEN);
-	clock_gettime(CLOCK_MONOTONIC, &endTime);
-	interval_s = endTime.tv_sec - startTime.tv_sec;
-	if(interval_s > 0){
-		interval_s -= 1;
-		interval_ns = endTime.tv_nsec - startTime.tv_nsec + BILLION;
-	}else{
-		interval_ns = endTime.tv_nsec - startTime.tv_nsec;
-	}
-	printf("mmap cost [%ld]s, [%ld.%ld]ms\n", interval_s, interval_ns/1000000, interval_ns%1000000);
+	timeEnd(&startTime, &endTime);
 	printf("================================\n");
 	#endif
 	
